@@ -12,6 +12,8 @@ python -m venv .venv
 Copy-Item local.settings.example.json local.settings.json
 ```
 
+The `-r` option tells pip to install every Python package listed in `requirements.txt`. Azure Functions Core Tools is a separate prerequisite and is not installed by pip.
+
 Set a private `APP_API_KEY` in `local.settings.json`, then start the host:
 
 ```powershell
