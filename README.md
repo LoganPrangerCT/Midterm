@@ -105,12 +105,6 @@ The smoke test requires an empty instance, creates its own league and deletes it
 
 **Deployment status:** This application was deployed to Azure and tested successfully on October 30, 2026, as documented in the hosted test records and screenshots. I have since taken down the deployment because I was worried I'd forget about it and eat through all my credits. If you would like me to redeploy for your own verification just let me know.
 
-The application was published from this folder as the Azure Functions root. Its former base URL was `https://fantasy-midterm-lpranger.azurewebsites.net/api`. Redeployment requires recreating the Azure resources, setting a private `APP_API_KEY`, and publishing the folder with Azure Functions Core Tools.
-
-The deployment used a Linux Basic B1 plan in North Central US with one instance, one Python worker and Always On. This provided warm availability and predictable compute cost of about $0.43/day or $13.14 per 730-hour month, before storage and other charges (USD retail estimate checked October 28, 2026). Scale-to-zero hosting is an alternative if future usage and costs justify a change. B1 is a project choice, not a rubric requirement.
-
-The in-memory league is shared by callers using the application key and clears on restart/deployment. Host storage does not persist league data. Use one instance and one Python worker for this temporary repository. Always On prevents idle unloading; it does not guarantee process lifetime or preserve memory across recycling, and stopping the Function App still leaves the B1 plan billable. The October 30 clean rebuild passed all 33 hosted smoke checks; see the [completed writeup](docs/project.pdf).
-
 ## Documentation
 
 - [Project writeup](docs/project.pdf) — overview, API reference, deployment and full hosted test records
