@@ -1,0 +1,9 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "FUNCTIONS_WORKER_PROCESS_COUNT": "1",
+    "APP_API_KEY": "REPLACE_WITH_A_RANDOM_LOCAL_KEY"
+  },
+  "Host": {"LocalHttpPort": 7071, "LocalHttpAddress": "127.0.0.1"}
+}

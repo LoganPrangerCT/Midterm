@@ -1,0 +1,5 @@
+{
+  "version": "2.0",
+  "logging": {"logLevel": {"default": "Warning", "Host.Results": "Information"}},
+  "extensions": {"http": {"routePrefix": "api"}}
+}

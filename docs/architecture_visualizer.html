@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fantasy Draft Grader — Architecture Visualizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #07090e;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+    }
+    .code-font {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+    .bg-grid {
+      background-size: 28px 28px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #0c0f17; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  
+    header{justify-content:space-between!important;min-height:64px;gap:18px}.page-title strong{display:block;font-size:14px;color:#f1f5f9}.page-title span{display:block;font-size:11px;color:#94a3b8;margin-top:3px}
+    #viewFlow{grid-template-columns:minmax(0,1fr) 4px minmax(0,var(--details-width,370px));height:calc(100vh - 64px);min-height:0;flex:none}
+    #viewFlow>section{grid-column:auto;height:100%;min-height:0;overflow:hidden}#viewFlow>aside{min-width:0;grid-column:auto;height:100%;min-height:0}
+    .step-banner{padding:14px 18px 0;flex-shrink:0}.step-banner>div{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}
+    .map-scroll{position:relative;flex:1;min-height:0;overflow:auto;padding:12px 18px 20px}#architectureMap{display:block;width:100%;min-width:1120px;height:auto;aspect-ratio:1280/735}
+    .map-node{cursor:pointer;outline:none}.map-node:hover .card,.map-node:focus-visible .card{stroke:#f1f5f9;stroke-width:2}.map-node[aria-pressed=true] .card{stroke:var(--node-color);stroke-width:2.5;filter:drop-shadow(0 0 7px #38bdf822)}.map-node[aria-pressed=true] .node-title{fill:white}.map-node text{pointer-events:none}.map-edge{fill:none;stroke:#536b86;stroke-width:1.6}.map-edge.active{stroke:var(--edge-color);stroke-width:2.7}.edge-label{font:11px 'Segoe UI',sans-serif;fill:#adbed1;paint-order:stroke;stroke:#0b111d;stroke-width:6px;stroke-linejoin:round}.map-caption{font:12px 'Segoe UI',sans-serif;fill:#94a3b8}.map-node .node-title{font:600 15px 'Segoe UI',sans-serif;fill:#e2e8f0}.map-node .node-sub{font:12px 'Segoe UI',sans-serif;fill:#aabbd0}.map-node .node-file{font:10px Consolas,monospace;fill:#8aa5c4}
+    .request-route{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:14px 18px 0;font-size:11px;color:#8094ac}.request-route span{padding:5px 8px;border:1px solid #28394e;border-radius:6px}.request-route span[aria-current=step]{background:#163834;color:#a7f3d0;border-color:#438e80}.request-route b{font-weight:400;color:#607b98}
+    .trace-direction{color:#6ee7b7;font-size:11px;font-weight:600;margin-bottom:10px}.map-edge.return{stroke:#648b88}.map-edge.active{stroke:var(--edge-color)}
+    .trace-description{padding:16px;border-bottom:1px solid #1e293b;background:#101827}.trace-description h2{font-size:16px;line-height:1.4;color:#f8fafc;margin:0 0 9px}.trace-description p{font-size:12px;line-height:1.7;color:#b0c2d8;margin:0}.trace-description .rule{margin-top:10px;color:#7dd3fc;font-size:11px}.inspector-heading{flex-wrap:wrap;gap:10px}#componentLabel{white-space:normal}button:focus-visible{outline:2px solid #67e8f9;outline-offset:3px}
+    @media(max-width:1100px){#viewFlow{grid-template-columns:minmax(0,1fr) 4px minmax(0,var(--details-width,310px))}.page-title span{font-size:10px}.map-scroll{justify-content:flex-start}#architectureMap{min-width:1120px}}
+    @media(max-width:850px){#viewFlow{display:flex;flex-direction:column;height:auto}#viewFlow>section{height:auto;min-height:620px}#viewFlow>aside{height:650px}.map-scroll{height:620px;min-height:620px;flex:none;padding:12px}#architectureMap{min-width:1000px;height:auto}.page-title strong{font-size:12px}.page-title span{display:none}header{padding:10px!important}.step-banner{padding:14px}.trace-description h2{font-size:15px}}
+    .panel-divider{position:relative;z-index:35;display:flex;align-items:center;justify-content:center;cursor:col-resize;touch-action:none;background:#101827;border-left:1px solid #26384e;border-right:1px solid #26384e;outline:none}.panel-divider:before{content:'';height:56px;width:2px;border-radius:2px;background:#607c98}.panel-divider:hover,.panel-divider:focus-visible{background:#183337}.panel-divider:hover:before,.panel-divider:focus-visible:before{background:#6ee7b7}.panel-divider span{display:none}.panel-divider:focus-visible{box-shadow:inset 0 0 0 2px #67e8f9}.resizing,.resizing *{cursor:col-resize!important;user-select:none!important}.panel-expand{font-size:11px;color:#a7f3d0;background:#183534;border:1px solid #365e5c;border-radius:6px;padding:5px 9px;white-space:nowrap}.panel-expand:hover{background:#244d47}#detailsHeader{flex-wrap:wrap;gap:10px;flex-shrink:0}#detailsHeader>div:first-child{min-width:0;flex-wrap:wrap}#payloadViewSwitcher{margin-left:auto}.trace-description{flex-shrink:0}#detailsPanel>.p-3\.5{min-height:0}
+    @media(max-width:850px){.panel-divider{display:none}#viewFlow.details-focus>#detailsPanel{position:fixed;inset:64px 0 0;height:calc(100dvh - 64px);z-index:45;background:#0a0d17}}
+    @media(prefers-reduced-motion:reduce){#trace-packet{display:none}}
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#07090e] text-slate-200">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-slate-800/80 bg-[#0c101b]/90 backdrop-blur-md px-5 py-2 flex items-center justify-center sticky top-0 z-50 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+    <div class="page-title"><strong>Fantasy Draft Grader</strong><span>From league import to report card</span></div>
+    <!-- Center Playback Controls -->
+    <div class="flex items-center gap-2">
+      <div class="bg-slate-900/90 px-1.5 py-1 rounded-xl border border-slate-800 flex items-center space-x-1.5 shadow-inner">
+        <button id="btnPlay" class="px-3.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 hover:brightness-110 transition flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.4)]">
+          <span id="playIcon">▶</span>
+          <span id="playText">Play Story</span>
+        </button>
+        <button id="btnPrev" class="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Previous Step" aria-label="Previous step">◀</button>
+        <button id="btnNext" class="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Next Step" aria-label="Next step">▶</button>
+        <button id="btnReset" class="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Reset Trace" aria-label="Reset trace">↺</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Pipeline Visualizer + Live Step details & payload -->
+  <div id="viewFlow" class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden">
+    
+    <!-- Left: Canvas Area (8 cols) -->
+    <section class="lg:col-span-8 flex flex-col relative h-[500px] lg:h-[calc(100vh-65px)] border-b lg:border-b-0 lg:border-r border-slate-800/80 bg-[#07090e] bg-grid select-none">
+      
+      <!-- Current Step Banner -->
+      <div class="step-banner">
+        <div class="bg-slate-900/90 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-slate-700/80 shadow-[0_8px_25px_rgba(0,0,0,0.6)] flex items-center space-x-3 pointer-events-auto">
+          <span id="stepNumberBadge" class="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-slate-950 text-xs font-black flex items-center justify-center shadow-[0_0_10px_rgba(6,182,212,0.5)]">1</span>
+          <div>
+            <div id="stepPhaseTitle" class="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Step 1 of 7</div>
+            <div id="stepActionTitle" class="text-xs font-bold text-white tracking-tight">Import a league</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Canvas -->
+      <div class="request-route" aria-label="Story sequence"><span>Import league</span><b>→</b><span>Ask Sleeper</span><b>→</b><span>Receive picks</span><b>→</b><span>Save league</span><b>→</b><span>Choose team</span><b>→</b><span>Grade picks</span><b>→</b><span>Report card</span></div><div class="map-scroll"><svg id="architectureMap" viewBox="0 50 1280 735" role="group" aria-label="Application topology. Select a component to inspect its trace step."></svg></div>
+
+      <!-- Bottom Interactive Progress Scrubber -->
+      <div class="p-3 bg-[#0a0d17]/95 border-t border-slate-800/80 backdrop-blur-md flex flex-col gap-2 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.4)]">
+        <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+          <span class="flex items-center gap-2">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+            </span>
+            <span class="text-[11px] font-semibold text-slate-300">Story Timeline</span>
+          </span>
+          <span id="stepCounterText" class="code-font text-[11px] text-cyan-300 font-bold bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/50">Step 1 of 7</span>
+        </div>
+
+        <!-- Clean Interactive Slider Track -->
+        <div class="relative w-full flex items-center h-4 cursor-pointer" id="progressTrackArea" role="slider" tabindex="0" aria-label="Story step" aria-valuemin="1" aria-valuemax="7" aria-valuenow="1" title="Click or drag to jump to any step">
+          <div class="w-full h-2 bg-slate-800/90 rounded-full overflow-hidden shadow-inner relative border border-slate-700/40">
+            <div id="progressFill" class="h-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-indigo-500 w-[14.29%] transition-all duration-300 shadow-[0_0_15px_rgba(6,182,212,0.7)]"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="panelDivider" class="panel-divider" role="separator" tabindex="0" aria-label="Resize details panel" aria-orientation="vertical" aria-controls="detailsPanel" aria-valuemin="310" aria-valuemax="1000" aria-valuenow="370" title="Drag to resize · click to expand or restore details"><span aria-hidden="true">‹</span></div>
+    <!-- Right: Clean Live Step details & payload (4 cols) -->
+    <aside id="detailsPanel" class="lg:col-span-4 flex flex-col h-[520px] lg:h-[calc(100vh-65px)] bg-[#0a0d17]/95 border-slate-800 overflow-hidden">
+      
+      <!-- Right Pane Header -->
+      <div id="detailsHeader" class="px-4 py-3 border-b border-slate-800/80 bg-[#0d1220] flex items-center justify-between sticky top-0 z-30 shadow-md">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)] animate-pulse"></span>
+          <span class="text-xs font-bold text-white uppercase tracking-wider">Step details & payload</span>
+          <span id="componentLabel" class="text-[10px] text-slate-400 code-font bg-slate-800/90 px-2 py-0.5 rounded border border-slate-700/60 ml-1">Client ➔ Azure</span>
+        </div>
+        <button id="expandDetails" class="panel-expand" aria-expanded="false" aria-controls="detailsPanel" title="Expand details panel">Expand ↗</button><div id="payloadViewSwitcher" class="flex items-center gap-1.5">
+          <span id="payloadFormatBadge" class="text-[10px] code-font px-2.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 font-semibold shadow-[0_0_8px_rgba(6,182,212,0.3)]">HTTP Request</span>
+        </div>
+      </div>
+
+      <div class="trace-description" aria-live="polite"><div id="traceDirection" class="trace-direction"></div><h2 id="traceTitle"></h2><p id="traceSummary"></p><p class="rule" id="traceRule"></p></div>
+      <!-- Full-Height Live Code/JSON Box -->
+      <div class="p-3.5 flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 rounded-xl border border-cyan-500/20 bg-[#05070d] p-3.5 text-xs code-font text-slate-200 overflow-x-auto overflow-y-auto shadow-[inset_0_0_20px_rgba(0,0,0,0.85)] leading-relaxed">
+          <pre id="payloadCodeView" class="text-[11.5px] text-cyan-200/90 whitespace-pre"><code>{}</code></pre>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const ACTUAL_REPORT_TEXT = `====================================================================================
+                             FANTASY DRAFT REPORT CARD                              
+Team: loganpranger | Season: 2026
+====================================================================================
+
++----------------------------------------------------------------------------------+
+|                                                                                  |
+|                    +========================================+                    |
+|                    |                                        |                    |
+|                    |           DRAFT GRADE: [ C ]           |                    |
+|                    |                                        |                    |
+|                    +========================================+                    |
+|                                                                                  |
+|               Total Value: +25.7 pts    Average Value: +1.977 pts                |
+|                                                                                  |
++----------------------------------------------------------------------------------+
+
+====================================================================================
+                                  BIGGEST WINNERS                                   
+====================================================================================
+ Rank  Player Name                 Round   Pick   Rank (Then vs Now)          Value 
+------------------------------------------------------------------------------------
+  1.   Matthew Golden             Rnd 10  #98           #98 vs #30           +66.6
+  2.   Bhayshul Tuten             Rnd 6   #58           #58 vs #26           +39.0
+  3.   Jordyn Tyson               Rnd 13  #123         #123 vs #85           +10.6
+------------------------------------------------------------------------------------
+
+====================================================================================
+                                   BIGGEST LOSERS                                   
+====================================================================================
+ Rank  Player Name                 Round   Pick   Rank (Then vs Now)          Value 
+------------------------------------------------------------------------------------
+  1.   Chase Brown                Rnd 2   #13           #13 vs #38           -42.2
+  2.   Jonathon Brooks            Rnd 9   #83          #83 vs #186           -19.0
+  3.   DeVonta Smith              Rnd 4   #38           #38 vs #57           -11.6
+------------------------------------------------------------------------------------
+
+====================================================================================
+                                  FULL DRAFT BOARD                                  
+====================================================================================
+  Rnd   Pick   Player Name                 Rank (Then vs Now)                 Value 
+------------------------------------------------------------------------------------
+    1      #8   James Cook                          #8 vs #10                  -1.8
+    2     #13   Chase Brown                         #13 vs #38                -42.2
+    3     #23   Nico Collins                        #23 vs #24                 -0.7
+    4     #38   DeVonta Smith                       #38 vs #57                -11.6
+    5     #43   Emeka Egbuka                        #43 vs #64                -11.6
+    6     #58   Bhayshul Tuten                      #58 vs #26                +39.0
+    7     #63   Rhamondre Stevenson                 #63 vs #51                 +6.4
+    8     #78   Marvin Harrison                    #78 vs #117                -10.4
+    9     #83   Jonathon Brooks                    #83 vs #186                -19.0
+   10     #98   Matthew Golden                      #98 vs #30                +66.6
+   11    #103   Dak Prescott                       #103 vs #88                 +3.3
+   12    #118   Mark Andrews                       #118 vs #180                -2.9
+   13    #123   Jordyn Tyson                       #123 vs #85                +10.6
+   14    #138   Jason Myers                         Not graded                  0.0
+   15    #143   Pittsburgh Steelers                 Not graded                  0.0
+====================================================================================`;
+
+    const STEPS = [
+  {
+    "id": 1,
+    "title": "Import your league",
+    "headline": "Import your league",
+    "actionSummary": "Send your Sleeper league ID. The API checks the key and input, then starts importing every team’s draft.",
+    "ruleText": "Authenticated and validated. First import the league; later, choose a team to grade.",
+    "fromNode": "client",
+    "toNode": "azure",
+    "packetLabel": "POST /api/leagues",
+    "format": "HTTP Request",
+    "label": "League import",
+    "component": "client → azure",
+    "payload": {
+      "method": "POST",
+      "path": "/api/leagues",
+      "headers": {
+        "x-api-key": "<your-api-key>",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "leagueId": "1391859959213359104"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "title": "Ask Sleeper for the draft",
+    "headline": "Ask Sleeper for the draft",
+    "actionSummary": "The importer asks Sleeper for the completed draft: league details, managers, rosters and all picks.",
+    "ruleText": "Several read-only requests are grouped into one story beat.",
+    "fromNode": "grader",
+    "toNode": "sleeper",
+    "packetLabel": "Fetch league + rosters + all picks",
+    "format": "Sleeper REST API",
+    "label": "Draft lookup",
+    "component": "grader → sleeper",
+    "payload": {
+      "method": "GET",
+      "baseUrl": "https://api.sleeper.app/v1",
+      "paths": [
+        "/league/1391859959213359104",
+        "/league/1391859959213359104/drafts",
+        "/league/1391859959213359104/users",
+        "/league/1391859959213359104/rosters",
+        "/draft/1391859959213359105/picks"
+      ]
+    }
+  },
+  {
+    "id": 3,
+    "title": "Receive the picks",
+    "headline": "Receive the picks",
+    "actionSummary": "The response connects loganpranger to roster 8 and its picks. Follow Cook, Brown and Golden into the saved league.",
+    "ruleText": "Illustrative response excerpt using the real league ID and team name. The full import validates all 150 picks.",
+    "fromNode": "sleeper",
+    "toNode": "grader",
+    "packetLabel": "League + roster + picks → Fantasy",
+    "format": "Sleeper response excerpt",
+    "label": "Draft picks",
+    "component": "sleeper → grader",
+    "payload": {
+      "picks": [
+        {
+          "roster_id": 8,
+          "round": 1,
+          "pick_no": 8,
+          "metadata": {
+            "first_name": "James",
+            "last_name": "Cook",
+            "position": "RB"
+          }
+        },
+        {
+          "roster_id": 8,
+          "round": 2,
+          "pick_no": 13,
+          "metadata": {
+            "first_name": "Chase",
+            "last_name": "Brown",
+            "position": "RB"
+          }
+        },
+        {
+          "roster_id": 8,
+          "round": 10,
+          "pick_no": 98,
+          "metadata": {
+            "first_name": "Matthew",
+            "last_name": "Golden",
+            "position": "WR"
+          }
+        },
+        {
+          "roster_id": 1,
+          "round": 1,
+          "pick_no": 1,
+          "metadata": {
+            "first_name": "Ja’Marr",
+            "last_name": "Chase",
+            "position": "WR"
+          }
+        }
+      ],
+      "league": {
+        "league_id": "1391859959213359104",
+        "season": "2026",
+        "draft_id": "1391859959213359105"
+      },
+      "draft": {
+        "draft_id": "1391859959213359105",
+        "status": "complete",
+        "settings": {
+          "teams": 10,
+          "rounds": 15
+        }
+      },
+      "users": [
+        {
+          "user_id": "1253239600227287040",
+          "display_name": "loganpranger"
+        }
+      ],
+      "rosters": [
+        {
+          "roster_id": 8,
+          "owner_id": "1253239600227287040"
+        }
+      ]
+    }
+  },
+  {
+    "id": 4,
+    "title": "Save the league",
+    "headline": "Save the league",
+    "actionSummary": "Save the complete, validated draft as one league snapshot. Each player now has a name, position and overall pick number.",
+    "ruleText": "All teams are saved, not just this preview. Import returns 201 Created; process memory clears on restart.",
+    "fromNode": "azure",
+    "toNode": "store",
+    "packetLabel": "Save league + all team picks",
+    "format": "Memory storage",
+    "label": "League snapshot",
+    "component": "azure → store",
+    "payload": {
+      "status": 201,
+      "headers": {
+        "Location": "/api/leagues/d7e98a12-8411-4fa2-bf62-125323960022"
+      },
+      "savedLeague": {
+        "id": "d7e98a12-8411-4fa2-bf62-125323960022",
+        "leagueId": "1391859959213359104",
+        "season": 2026,
+        "teamCount": 10,
+        "totalPicks": 150,
+        "teamPreview": {
+          "rosterId": 8,
+          "teamName": "loganpranger",
+          "pickCount": 15,
+          "picks": [
+            {
+              "round": 1,
+              "overallPick": 8,
+              "playerName": "James Cook",
+              "position": "RB"
+            },
+            {
+              "round": 2,
+              "overallPick": 13,
+              "playerName": "Chase Brown",
+              "position": "RB"
+            },
+            {
+              "round": 10,
+              "overallPick": 98,
+              "playerName": "Matthew Golden",
+              "position": "WR"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": 5,
+    "title": "Choose your team",
+    "headline": "Choose your team",
+    "actionSummary": "A separate request selects loganpranger. The API checks it and reads the team’s 15 picks from the saved league.",
+    "ruleText": "This request sends only the team name. No new Sleeper call is needed.",
+    "fromNode": "client",
+    "toNode": "azure",
+    "packetLabel": "POST /api/reports",
+    "format": "Report request",
+    "label": "Team selection",
+    "component": "client → azure",
+    "payload": {
+      "method": "POST",
+      "path": "/api/reports",
+      "headers": {
+        "x-api-key": "<your-api-key>",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      "body": {
+        "teamName": "loganpranger"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "title": "Compare picks with rankings",
+    "headline": "Compare picks with rankings",
+    "actionSummary": "Compare the saved picks with the rankings CSV. Golden adds +66.6 and Brown loses 42.2; all 13 graded picks total +25.7, earning a C.",
+    "ruleText": "Scores shown are a preview; the total includes all graded picks. Kicker and defense are excluded. This ranking-based grade is provisional.",
+    "fromNode": "grader",
+    "toNode": "rankings",
+    "packetLabel": "Local rankings → pick values",
+    "format": "Pick values + team grade",
+    "label": "Draft evaluation",
+    "component": "grader → rankings",
+    "payload": {
+      "rankings": "fantasy/data/rankings.csv",
+      "scoredPickPreview": [
+        {
+          "player": "James Cook",
+          "draftPick": 8,
+          "currentRank": 10,
+          "surplus": -1.8
+        },
+        {
+          "player": "Chase Brown",
+          "draftPick": 13,
+          "currentRank": 38,
+          "surplus": -42.2
+        },
+        {
+          "player": "Matthew Golden",
+          "draftPick": 98,
+          "currentRank": 30,
+          "surplus": 66.6,
+          "limitedByPickCap": true
+        }
+      ],
+      "excluded": [
+        "Jason Myers (K)",
+        "Pittsburgh Steelers (D/ST)"
+      ],
+      "teamSummary": {
+        "teamName": "loganpranger",
+        "gradedPicks": 13,
+        "ignoredPicks": 2,
+        "totalSurplus": 25.7,
+        "draftGrade": "C",
+        "provisional": true
+      }
+    }
+  },
+  {
+    "id": 7,
+    "title": "Receive your report card",
+    "headline": "Receive your report card",
+    "actionSummary": "Return loganpranger’s report card: the overall grade, biggest wins, biggest reaches and every draft pick.",
+    "ruleText": "Reports are calculated on demand and never saved. View the readable report or its JSON response excerpt.",
+    "fromNode": "azure",
+    "toNode": "client",
+    "packetLabel": "200 OK + report → caller",
+    "format": "Report Output",
+    "label": "Report card",
+    "component": "azure → client",
+    "payload": {
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+        "Vary": "Accept"
+      },
+      "body": {
+        "teamName": "loganpranger",
+        "season": 2026,
+        "source": {
+          "provider": "sleeper",
+          "leagueId": "1391859959213359104",
+          "rosterId": 8
+        },
+        "draftGrade": "C",
+        "evaluation": {
+          "totalSurplus": 25.7,
+          "averageSurplus": 1.977,
+          "letterGrade": "C",
+          "provisional": true,
+          "pickCount": 15,
+          "gradedPickCount": 13,
+          "ignoredPickCount": 2,
+          "bestPicks": [
+            {
+              "player": "Matthew Golden",
+              "surplus": 66.6
+            },
+            {
+              "player": "Bhayshul Tuten",
+              "surplus": 39.0
+            },
+            {
+              "player": "Jordyn Tyson",
+              "surplus": 10.6
+            }
+          ],
+          "worstPicks": [
+            {
+              "player": "Chase Brown",
+              "surplus": -42.2
+            },
+            {
+              "player": "Jonathon Brooks",
+              "surplus": -19.0
+            },
+            {
+              "player": "DeVonta Smith",
+              "surplus": -11.6
+            }
+          ]
+        }
+      }
+    },
+    "rawReport": ACTUAL_REPORT_TEXT
+  }
+];
+
+    const NODES = {
+      client:{id:'client',name:'Caller / API client',sub:'League import & reports',file:'Outside Azure',x:110,y:470,w:190,h:104,color:'#38bdf8'},
+      azure:{id:'azure',name:'HTTP request handler',sub:'Route, parse & respond',file:'function_app.py',x:415,y:470,w:240,h:104,color:'#60a5fa'},
+      auth:{id:'auth',name:'API key check',sub:'Wrong or missing key → 401',file:'Inside function_app.py',x:415,y:300,w:240,h:96,color:'#fbbf24'},
+      store:{id:'store',name:'Saved league memory',sub:'One league · all team picks',file:'repository.py',x:415,y:635,w:240,h:104,color:'#fb923c'},
+      sleeper:{id:'sleeper',name:'Sleeper REST API',sub:'League, roster & draft picks',file:'External · HTTPS GET only',x:1135,y:255,w:240,h:108,color:'#34d399'},
+      grader:{id:'grader',name:'fantasy backend',sub:'Import → validate → grade',file:'fantasy/ modules',x:800,y:470,w:270,h:104,color:'#c084fc'},
+      rankings:{id:'rankings',name:'rankings.csv',sub:'Frozen 2026 comparison data',file:'fantasy/data/rankings.csv',x:800,y:635,w:270,h:104,color:'#f472b6'}
+    };
+    const PIPES = [
+      {from:'client',to:'azure',d:'M205 455 H295',back:'M295 485 H205',label:'POST',lx:250,ly:440,returnLabel:'200 / 201',rx:250,ry:506},
+      {from:'azure',to:'auth',d:'M400 418 V348',back:'M430 348 V418',label:'Check key',lx:353,ly:385,returnLabel:'Key OK',rx:477,ry:385},
+      {from:'grader',to:'sleeper',d:'M935 445 H975 V255 H1015',back:'M1015 280 H955 V430 H935',label:'GET data',lx:930,ly:235,returnLabel:'League + picks',rx:1080,ry:337},
+      {from:'azure',to:'grader',d:'M535 455 H665',back:'M665 485 H535',label:'Import / grade',lx:600,ly:440,returnLabel:'Graded report',rx:600,ry:506},
+      {from:'grader',to:'rankings',d:'M785 522 V583',back:'M815 583 V522',label:'Lookup',lx:745,ly:556,returnLabel:'Ranks',rx:867,ry:556},
+      {from:'azure',to:'store',d:'M400 522 V583',back:'M430 583 V522',label:'Save',lx:370,ly:556,returnLabel:'League copy',rx:471,ry:556}
+    ];
+    const map = document.getElementById('architectureMap');
+    let currentStep=0,isPlaying=false,animProgress=0,lastTime=performance.now();
+    const escapeXml=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+    function drawTopology(){
+      const step=STEPS[currentStep];
+      let activePath='';
+      const edges=PIPES.map(pipe=>{
+        return [{from:pipe.from,to:pipe.to,d:pipe.d,label:pipe.label,x:pipe.lx,y:pipe.ly,returning:false},
+          {from:pipe.to,to:pipe.from,d:pipe.back,label:pipe.returnLabel,x:pipe.rx,y:pipe.ry,returning:true}].map(edge=>{
+          const active=step.fromNode===edge.from&&step.toNode===edge.to;
+          if(active)activePath=edge.d;
+          return `<path data-from="${edge.from}" data-to="${edge.to}" class="map-edge${edge.returning?' return':''}${active?' active':''}" style="--edge-color:${NODES[step.toNode].color}" d="${edge.d}" marker-end="url(#${active?'activeArrow':'arrow'})"/><text class="edge-label" text-anchor="middle" x="${edge.x}" y="${edge.y}">${edge.label}</text>`;
+        }).join('');
+      }).join('');
+      const cards=Object.values(NODES).map(node=>{
+        const active=node.id===step.fromNode||node.id===step.toNode;
+        const x=node.x-node.w/2,y=node.y-node.h/2;
+        const sub=node.id==='azure'&&[2,3,6].includes(step.id)?'Waiting for fantasy':node.id==='grader'&&step.toNode==='sleeper'?'Waiting for Sleeper’s response':node.sub;
+        return `<g class="map-node" role="button" tabindex="0" data-node="${node.id}" aria-label="${escapeXml(node.name)}. ${escapeXml(node.sub)}" aria-pressed="${active}" style="--node-color:${node.color}"><rect class="card" x="${x}" y="${y}" width="${node.w}" height="${node.h}" rx="12" fill="${active?'#14243a':'#101b2b'}" stroke="${node.color}66"/><rect x="${x+12}" y="${y+15}" width="4" height="14" rx="2" fill="${node.color}"/><text class="node-title" x="${x+24}" y="${y+27}">${node.name}</text><text class="node-sub" x="${x+14}" y="${y+49}">${escapeXml(sub)}</text><text class="node-file" x="${x+14}" y="${y+node.h-15}">${node.file}</text></g>`;
+      }).join('');
+      map.innerHTML=`<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10" fill="#718ba8"/></marker><marker id="activeArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10" fill="${NODES[step.toNode].color}"/></marker></defs>
+      <rect x="245" y="65" width="740" height="700" rx="20" fill="#0b1524" stroke="#3b628b"/>
+      <text x="275" y="150" class="map-caption">App Service plan: Linux B1 · one instance</text>
+      <rect x="275" y="185" width="280" height="525" rx="14" fill="#10213755" stroke="#4b6e94" stroke-dasharray="5 5"/>
+      <text x="295" y="210" fill="#93c5fd" font-size="15" font-weight="600">HTTP & memory</text>
+      <text x="295" y="232" class="map-caption">Routes, key checks & saved league</text>
+      <rect x="635" y="350" width="330" height="360" rx="14" fill="#241c3455" stroke="#a477bd" stroke-dasharray="5 5"/>
+      <text x="655" y="377" fill="#d8b4fe" font-size="15" font-weight="600">fantasy/ folder</text>
+      <text x="655" y="399" class="map-caption">Importing, grading & rankings data</text>
+      <text x="110" y="390" text-anchor="middle" class="map-caption">CALLER · OUTSIDE THE APP</text><text x="1135" y="173" text-anchor="middle" class="map-caption">EXTERNAL SERVICE</text>
+      ${edges}${cards}
+      <text x="415" y="741" text-anchor="middle" class="map-caption">Saved league clears on restart.</text>
+      <text x="800" y="741" text-anchor="middle" class="map-caption">This folder is part of the app.</text>
+      ${step.fromNode===step.toNode?`<rect x="${NODES[step.toNode].x-NODES[step.toNode].w/2+8}" y="${NODES[step.toNode].y-NODES[step.toNode].h/2+8}" width="${NODES[step.toNode].w-16}" height="${NODES[step.toNode].h-16}" rx="8" fill="none" stroke="${NODES[step.toNode].color}" opacity=".5"><animate attributeName="opacity" values=".15;.65;.15" dur="2s" repeatCount="indefinite"/></rect>`:''}
+      ${activePath?`<circle id="trace-packet" r="4" fill="white"><animateMotion dur="3s" repeatCount="indefinite" path="${activePath}"/></circle>`:''}`;
+    }
+    map.addEventListener('click',event=>{
+      const node=event.target.closest('[data-node]');if(!node)return;
+      const index=node.dataset.node==='auth'?0:STEPS.findIndex(step=>step.toNode===node.dataset.node);
+      if(index>=0){isPlaying=false;playText.textContent='Play Story';playIcon.textContent='▶';setStep(index)}
+    });
+    map.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){if(event.target.matches('[data-node]')){event.preventDefault();event.target.dispatchEvent(new MouseEvent('click',{bubbles:true}))}}});
+    function render(time){
+      const delta=Math.min((time-lastTime)/1000,.1);lastTime=time;
+      if(isPlaying){animProgress+=delta*.24;if(animProgress>=1){animProgress=0;setStep((currentStep+1)%STEPS.length)}}
+      requestAnimationFrame(render);
+    }
+
+    const progressFill = document.getElementById('progressFill');
+    const progressTrackArea = document.getElementById('progressTrackArea');
+
+    function setStep(idx) {
+      if (idx < 0 || idx >= STEPS.length) return;
+      currentStep = idx;
+      animProgress = 0;
+      updateUI();
+    }
+
+    let reportViewMode = 'ascii';
+
+    function updateUI() {
+      const step = STEPS[currentStep];
+      document.getElementById('traceTitle').textContent=step.title;
+      document.getElementById('traceSummary').textContent=step.actionSummary;
+      document.getElementById('traceRule').textContent=step.ruleText;
+      const phase=currentStep;
+      document.querySelectorAll('.request-route span').forEach((el,i)=>{if(i===phase)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current')});
+      drawTopology();
+
+      document.getElementById('stepNumberBadge').textContent = step.id;
+      document.getElementById('stepPhaseTitle').textContent = `Step ${step.id} of ${STEPS.length}`;
+      document.getElementById('stepActionTitle').textContent = step.title;
+      document.getElementById('stepCounterText').textContent = `Step ${step.id} of ${STEPS.length}`;
+
+      const percent = ((currentStep + 1) / STEPS.length) * 100;
+      progressFill.style.width = `${percent}%`;
+      progressTrackArea.setAttribute('aria-valuemax',String(STEPS.length));
+      progressTrackArea.setAttribute('aria-valuenow',String(step.id));
+      progressTrackArea.setAttribute('aria-valuetext',`Step ${step.id}: ${step.title}`);
+
+      document.getElementById('componentLabel').textContent = step.fromNode===step.toNode ? `Within ${NODES[step.toNode].name}` : `${NODES[step.fromNode].name} → ${NODES[step.toNode].name}`;
+      document.getElementById('traceDirection').textContent=step.packetLabel; 
+
+      const codeView = document.getElementById('payloadCodeView');
+      const toggleContainer = document.getElementById('payloadViewSwitcher');
+
+      if (step.id === STEPS.length) {
+        toggleContainer.innerHTML = `
+          <div class="flex items-center bg-slate-900/90 rounded-lg p-0.5 border border-slate-700/80">
+            <button id="btnToggleAscii" class="text-[10px] code-font px-2 py-0.5 rounded transition ${reportViewMode === 'ascii' ? 'bg-cyan-950 text-cyan-300 font-bold border border-cyan-800/80 shadow-[0_0_6px_rgba(6,182,212,0.3)]' : 'text-slate-400 hover:text-white'}">Report Card</button>
+            <button id="btnToggleJson" class="text-[10px] code-font px-2 py-0.5 rounded transition ${reportViewMode === 'json' ? 'bg-cyan-950 text-cyan-300 font-bold border border-cyan-800/80 shadow-[0_0_6px_rgba(6,182,212,0.3)]' : 'text-slate-400 hover:text-white'}">JSON</button>
+          </div>
+        `;
+
+        document.getElementById('btnToggleAscii').onclick = () => {
+          reportViewMode = 'ascii';
+          updateUI();
+        };
+        document.getElementById('btnToggleJson').onclick = () => {
+          reportViewMode = 'json';
+          updateUI();
+        };
+
+        if (reportViewMode === 'ascii') {
+          codeView.textContent = step.rawReport;
+        } else {
+          codeView.textContent = JSON.stringify(step.payload, null, 2);
+        }
+      } else {
+        toggleContainer.innerHTML = `<span id="payloadFormatBadge" class="text-[10px] code-font px-2.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 font-semibold shadow-[0_0_8px_rgba(6,182,212,0.3)]">${step.format}</span>`;
+        codeView.textContent = JSON.stringify(step.payload, null, 2);
+      }
+    }
+
+    function handleScrubberEvent(e) {
+      const rect = progressTrackArea.getBoundingClientRect();
+      const clickX = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+      const ratio = clickX / rect.width;
+      const targetStep = Math.min(STEPS.length - 1, Math.floor(ratio * STEPS.length));
+      setStep(targetStep);
+    }
+    progressTrackArea.addEventListener('click', handleScrubberEvent);
+    progressTrackArea.addEventListener('keydown',event=>{let index=currentStep;if(event.key==='ArrowRight')index++;else if(event.key==='ArrowLeft')index--;else if(event.key==='Home')index=0;else if(event.key==='End')index=STEPS.length-1;else return;event.preventDefault();setStep(index)});
+
+    const btnPlay = document.getElementById('btnPlay');
+    const playText = document.getElementById('playText');
+    const playIcon = document.getElementById('playIcon');
+
+    btnPlay.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      playText.textContent = isPlaying ? "Pause" : "Play Story";
+      playIcon.textContent = isPlaying ? "⏸" : "▶";
+    });
+
+    document.getElementById('btnNext').addEventListener('click', () => {
+      isPlaying = false;
+      playText.textContent = "Play Story";
+      playIcon.textContent = "▶";
+      if (currentStep < STEPS.length - 1) setStep(currentStep + 1);
+    });
+
+    document.getElementById('btnPrev').addEventListener('click', () => {
+      isPlaying = false;
+      playText.textContent = "Play Story";
+      playIcon.textContent = "▶";
+      if (currentStep > 0) setStep(currentStep - 1);
+    });
+
+    document.getElementById('btnReset').addEventListener('click', () => {
+      isPlaying = false;
+      playText.textContent = "Play Story";
+      playIcon.textContent = "▶";
+      setStep(0);
+    });
+
+
+    const flow=document.getElementById('viewFlow'),details=document.getElementById('detailsPanel'),divider=document.getElementById('panelDivider'),expandDetails=document.getElementById('expandDetails');
+    const smallScreen=matchMedia('(max-width:850px)');
+    let expanded=false,restoreWidth=null,dragStart=null,didDrag=false;
+    function panelLimits(){return {min:310,max:Math.max(310,flow.clientWidth-190)}}
+    function setPanelWidth(width){
+      const limits=panelLimits(),value=Math.round(Math.max(limits.min,Math.min(limits.max,width)));
+      flow.style.setProperty('--details-width',value+'px');
+      divider.setAttribute('aria-valuemin',limits.min);divider.setAttribute('aria-valuemax',limits.max);divider.setAttribute('aria-valuenow',value);
+      divider.setAttribute('aria-valuetext',value+' pixels for details');
+    }
+    function updatePanelState(){
+      flow.classList.toggle('details-focus',expanded);expandDetails.textContent=expanded?'Restore ↙':'Expand ↗';expandDetails.setAttribute('aria-expanded',String(expanded));
+      divider.querySelector('span').textContent=expanded?'›':'‹';
+      flow.querySelector('section').inert=expanded&&smallScreen.matches;
+    }
+    function toggleDetails(){
+      if(!expanded){restoreWidth=details.getBoundingClientRect().width;expanded=true;if(!smallScreen.matches)setPanelWidth(flow.clientWidth*.8)}
+      else{expanded=false;if(restoreWidth!==null)setPanelWidth(restoreWidth)}
+      updatePanelState();
+    }
+    expandDetails.addEventListener('click',toggleDetails);
+    divider.addEventListener('pointerdown',event=>{if(event.button!==0)return;didDrag=false;dragStart={x:event.clientX,width:details.getBoundingClientRect().width};divider.setPointerCapture(event.pointerId)});
+    divider.addEventListener('pointermove',event=>{
+      if(!dragStart)return;const delta=dragStart.x-event.clientX;if(!didDrag&&Math.abs(delta)<4)return;
+      didDrag=true;expanded=false;document.body.classList.add('resizing');setPanelWidth(dragStart.width+delta);updatePanelState();
+    });
+    function endResize(){dragStart=null;document.body.classList.remove('resizing')}
+    divider.addEventListener('pointerup',endResize);divider.addEventListener('pointercancel',()=>{didDrag=true;endResize()});divider.addEventListener('lostpointercapture',endResize);
+    divider.addEventListener('click',()=>{if(didDrag){didDrag=false;return}toggleDetails()});
+    divider.addEventListener('keydown',event=>{
+      if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDetails();return}
+      const limits=panelLimits(),width=details.getBoundingClientRect().width;
+      if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+      event.preventDefault();expanded=false;setPanelWidth(event.key==='Home'?limits.min:event.key==='End'?limits.max:width+(event.key==='ArrowLeft'?40:-40));updatePanelState();
+    });
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&expanded)toggleDetails()});
+    window.addEventListener('resize',()=>{if(!smallScreen.matches){if(expanded)setPanelWidth(flow.clientWidth*.8);else if(flow.style.getPropertyValue('--details-width'))setPanelWidth(details.getBoundingClientRect().width)}updatePanelState()});
+    setPanelWidth(details.getBoundingClientRect().width);
+
+    updateUI();
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>

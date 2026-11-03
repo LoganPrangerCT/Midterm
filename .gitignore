@@ -1,0 +1,11 @@
+.venv/
+.python_packages/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+local.settings.json
+.env
+.env.*
+.vscode/
+*.log
+test-results/
