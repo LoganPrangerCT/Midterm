@@ -2,6 +2,10 @@
 
 A Python Azure Functions API for reviewing a Sleeper league's draft against the 2026 rankings. Save a league once, then request any manager's report by name. The API stores one complete league in memory and calculates report cards on demand.
 
+Azure API base URL: https://fantasy-midterm-lpranger-degda0fabcbehhch.northcentralus-01.azurewebsites.net/api
+
+Append the route to this base URL and send the private `APP_API_KEY` in the `x-api-key` header. For PUT and DELETE, use the saved UUID returned by your POST request; the UUIDs in the writeup are example values.
+
 ## Run locally
 
 Install Python 3.12 and Azure Functions Core Tools v4. From the project root:
