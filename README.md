@@ -103,10 +103,6 @@ requirements.txt
 
 The smoke test requires an empty instance, creates its own league and deletes it afterward. It refuses to overwrite an existing saved league.
 
-## Deployment
-
-**Deployment status:** This application was deployed to Azure and tested successfully on October 30, 2026, as documented in the hosted test records and screenshots. I have since taken down the deployment because I was worried I'd forget about it and eat through all my credits. If you would like me to redeploy for your own verification just let me know.
-
 ## Documentation
 
 - [Project writeup](docs/project.pdf) — overview, API reference, deployment and full hosted test records
